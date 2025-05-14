@@ -1,0 +1,44 @@
+
+TITLE: Concurrent Analysis (Population Mobility -> Individual Journey Diversity -> PCL5);
+
+! This is one of 9 mediation analyses examining different combinations of:
+! 1. Individual mobility metrics (3 options):
+!    - journey_diversity
+!    - immobility
+!    - remoteness
+! 2. Mental health symptom measures (3 options):
+!    - phq9
+!    - gad7
+!    - pcl5
+!
+! Population mobility (gcmr_home_stay) remains the same predictor across all models.
+! All 9 analyses follow this same template with different variable combinations.
+
+DATA:
+  FILE = "./dataset_long_15Apr25.csv";
+
+VARIABLE:
+  NAMES = subj_id timepoint weight journey_diversity immobility
+          remoteness gcmr_home_stay phq9 gad7 pcl5;
+  USEVARIABLES = gcmr_home_stay journey_diversity pcl5;
+  CLUSTER = subj_id;      ! Accounts for repeated measures from the same individuals across waves 1-3
+  WEIGHT = weight;        
+  MISSING = ALL (-9999);  
+
+ANALYSIS:
+  TYPE = COMPLEX;         ! Accounts for non-independence of observations within subjects
+  ESTIMATOR = ML;         
+  BOOTSTRAP = 10000;       
+
+MODEL:
+  journey_diversity ON gcmr_home_stay (a);   ! Path A: Population mobility → Individual mobility
+  pcl5 ON journey_diversity (b);             ! Path B: Individual mobility → Mental health symptoms
+  pcl5 ON gcmr_home_stay (c_prime);          ! Direct effect: Population mobility → Mental health symptoms
+
+MODEL CONSTRAINT:
+  NEW(indirect);
+  indirect = a*b;                            ! Calculate the indirect effect
+
+OUTPUT:
+  STANDARDIZED;                              
+  CINTERVAL(BCBOOTSTRAP); 
